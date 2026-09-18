@@ -17,7 +17,7 @@ headers = {
     )
 }
 
-# Default fallback values in case anti-bot blocks a specific hourly check
+# Fallback defaults if a check fails
 upper_min = 91.0
 upper_mid = 146.0
 mid_level = 203.0
@@ -32,46 +32,48 @@ try:
     mid_prices = []
     lower_prices = []
 
-    # Parse listing cards on the page
-    listings = soup.select(
-        'div[class*="card"], div[class*="Listing"], article, li'
+    # Target ticket card containers on the page
+    listings = soup.find_all(
+        lambda tag: tag.name == 'div'
+        and tag.get('class')
+        and any('Section' in c or 'card' in c for c in tag.get('class'))
     )
+
+    # Fallback to general blocks if specific card classes vary
+    if not listings:
+      listings = soup.select('div[class*="Listing"], article, li')
 
     for item in listings:
       text = item.get_text()
-      if any(sec in text for sec in ['3', 'Upper']):
-        price_el = item.select_one('.price, [class*="Price"]')
-        if price_el:
-          p_val = float(
-              price_el.get_text()
+      # Look for price elements inside the listing block
+      price_tag = item.select_one(
+          '[class*="price"], [class*="Price"], div[id*="price"]'
+      )
+      if price_tag:
+        try:
+          price_val = float(
+              price_tag.get_text()
               .strip()
               .replace('$', '')
               .replace(',', '')
               .split()[0]
           )
-          upper_prices.append(p_val)
-      elif any(sec in text for sec in ['1', 'Mid', 'Club']):
-        price_el = item.select_one('.price, [class*="Price"]')
-        if price_el:
-          p_val = float(
-              price_el.get_text()
-              .strip()
-              .replace('$', '')
-              .replace(',', '')
-              .split()[0]
-          )
-          mid_prices.append(p_val)
-      elif any(sec in text for sec in ['10', '11', '12', '13', 'Lower']):
-        price_el = item.select_one('.price, [class*="Price"]')
-        if price_el:
-          p_val = float(
-              price_el.get_text()
-              .strip()
-              .replace('$', '')
-              .replace(',', '')
-              .split()[0]
-          )
-          lower_prices.append(p_val)
+
+          # Sort into tier brackets based on section numbers found in the text
+          if any(
+              sec in text
+              for sec in ['301', '302', '303', '304', '305', '306', '330', '3']
+          ):
+            upper_prices.append(price_val)
+          elif any(sec in text for sec in ['106', '107', '110', '1']):
+            mid_prices.append(price_val)
+          elif any(
+              sec in text
+              for sec in ['121', '122', '111', '114', '115', '116', '117', '118']
+          ):
+            lower_prices.append(price_val)
+        except ValueError:
+          continue
 
     if upper_prices:
       upper_min = min(upper_prices)
@@ -81,7 +83,7 @@ try:
       lower_bowl = min(lower_prices)
 
 except Exception as e:
-  print(f'Scraper note (using fallback/previous baseline): {e}')
+  print(f'Scraper note (using baseline): {e}')
 
 # Current data package to log
 current_data = {
@@ -117,11 +119,4 @@ if webhook_url:
   )
 
   payload = {'content': message}
-  response = requests.post(webhook_url, json=payload)
-
-  if response.status_code == 204:
-    print('Discord alert sent successfully!')
-  else:
-    print(f'Failed to send Discord alert. Status: {response.status_code}')
-else:
-  print('No DISCORD_WEBHOOK_URL secret found.')
+  requests.post(webhook_url, json=payload)
