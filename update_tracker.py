@@ -33,16 +33,13 @@ try:
     lower_prices = []
 
     # Parse listing cards on the page
-    # Ticket cards typically contain section names and prices
     listings = soup.select(
         'div[class*="card"], div[class*="Listing"], article, li'
     )
 
     for item in listings:
       text = item.get_text()
-      # Identify section tier and extract price
       if any(sec in text for sec in ['3', 'Upper']):
-        # Find price elements inside upper tier cards
         price_el = item.select_one('.price, [class*="Price"]')
         if price_el:
           p_val = float(
@@ -76,7 +73,6 @@ try:
           )
           lower_prices.append(p_val)
 
-    # If scraper successfully grabbed live prices, update the minimums found
     if upper_prices:
       upper_min = min(upper_prices)
     if mid_prices:
@@ -105,3 +101,27 @@ else:
 
 df.to_csv(log_file, index=False)
 print(f'Successfully logged dynamic hourly entry for {current_data["date"]}')
+
+# --- DISCORD ALERT INTEGRATION ---
+webhook_url = os.environ.get('DISCORD_WEBHOOK_URL')
+
+if webhook_url:
+  message = (
+      f'🏈 **Hourly Ticket Update (Chiefs vs Dolphins)**\n'
+      f"📅 Time: `{current_data['date']}`\n"
+      f"🟢 Upper Deck Min: **${current_data['upper_deck_min']}**\n"
+      f"🟡 Upper Deck Mid: **${current_data['upper_deck_mid']}**\n"
+      f"🟠 Mid Level: **${current_data['mid_level']}**\n"
+      f"🔴 Lower Bowl: **${current_data['lower_bowl']}**\n"
+      f'🔗 [View Live Tracker Chart](https://cortexstrippr.github.io/dolphins-ticket-tracker/)'
+  )
+
+  payload = {'content': message}
+  response = requests.post(webhook_url, json=payload)
+
+  if response.status_code == 204:
+    print('Discord alert sent successfully!')
+  else:
+    print(f'Failed to send Discord alert. Status: {response.status_code}')
+else:
+  print('No DISCORD_WEBHOOK_URL secret found.')
