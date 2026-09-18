@@ -2,8 +2,8 @@ name: Hourly Ticket Tracker
 
 on:
   schedule:
-    - cron: '0 * * * *' # Runs every single hour
-  workflow_dispatch: # Allows you to manually trigger it anytime from GitHub
+    - cron: '0 * * * *' # Runs automatically every hour
+  workflow_dispatch: # Lets you manually test-run it anytime from GitHub
 
 jobs:
   run-tracker:
@@ -19,16 +19,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas matplotlib requests beautifulsoup4
+          pip install pandas
 
-      - name: Run script
+      - name: Run tracking script
         run: python update_tracker.py
 
-      - name: Commit and push changes back to repo
+      - name: Commit and push updated CSV back to repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add dolphins_chiefs_section_log.csv
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update ticket prices" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update hourly ticket prices" && git push)
