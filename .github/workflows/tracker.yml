@@ -5,6 +5,9 @@ on:
     - cron: '0 * * * *' # Runs automatically every hour
   workflow_dispatch: # Lets you manually test-run it anytime from GitHub
 
+permissions:
+  contents: write  # <-- This explicitly grants write access for git push
+
 jobs:
   run-tracker:
     runs-on: ubuntu-latest
