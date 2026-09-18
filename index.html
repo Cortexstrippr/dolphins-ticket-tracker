@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chiefs vs Dolphins Ticket Price Tracker</title>
+    <!-- Include Chart.js & PapaParse for CSV reading -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; color: #333; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #008E97; }
+        canvas { max-width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chiefs at Dolphins Ticket Trend Tracker</h1>
+        <p>Live hourly price monitoring for Hard Rock Stadium (Sep 27, 2026)</p>
+        <canvas id="ticketChart"></canvas>
+    </div>
+
+    <script>
+        async function loadChart() {
+            // Fetch the CSV file right out of your repository
+            const response = await fetch('dolphins_chiefs_section_log.csv');
+            const csvText = await response.text();
+
+            // Parse CSV using PapaParse
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    
+                    const labels = data.map(row => row.date);
+                    const upperMin = data.map(row => parseFloat(row.upper_deck_min));
+                    const upperMid = data.map(row => parseFloat(row.upper_deck_mid));
+                    const midLevel = data.map(row => parseFloat(row.mid_level));
+                    const lowerBowl = data.map(row => parseFloat(row.lower_bowl));
+
+                    const ctx = document.getElementById('ticketChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: 'Upper Deck Min (Sec 330)', data: upperMin, borderColor: '#008E97', backgroundColor: '#008E97', tension: 0.1 },
+                                { label: 'Upper Deck (Sec 306)', data: upperMid, borderColor: '#00A3AD', backgroundColor: '#00A3AD', tension: 0.1 },
+                                { label: 'Mid Level (Sec 106)', data: midLevel, borderColor: '#FC4C02', backgroundColor: '#FC4C02', tension: 0.1 },
+                                { label: 'Lower Bowl (Sec 121)', data: lowerBowl, borderColor: '#D03B00', backgroundColor: '#D03B00', tension: 0.1 }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: { title: { display: true, text: 'Price (USD incl. fees)' } },
+                                x: { title: { display: true, text: 'Date & Time' } }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        loadChart();
+    </script>
+</body>
+</html>
