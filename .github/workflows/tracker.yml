@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas
+          pip install pandas requests beautifulsoup4
 
       - name: Run tracking script
         run: python update_tracker.py
